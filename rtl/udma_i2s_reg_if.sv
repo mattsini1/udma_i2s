@@ -34,6 +34,9 @@
 `define REG_I2S_MST_SETUP    5'b01010 //BASEADDR+0x28    
 `define REG_I2S_PDM_SETUP    5'b01011 //BASEADDR+0x2C
 
+`define REG_I2S_DSP_SETUP    5'b01100 //BASEADDR+0x30
+
+
 module udma_i2s_reg_if #(
     parameter L2_AWIDTH_NOAL = 12,
     parameter TRANS_SIZE     = 16
@@ -77,6 +80,11 @@ module udma_i2s_reg_if #(
     output logic                      cfg_slave_clk_en_o,
 
     output logic                      cfg_pdm_clk_en_o,
+    
+    //DSP reg
+    output logic                      cfg_dsp_en_o,
+    output logic               [15:0] cfg_dsp_setup_time_o,
+    output logic               [1:0]   cfg_dsp_mode_o,
 
     output logic                      cfg_master_sel_num_o,
     output logic                      cfg_master_sel_ext_o,
@@ -101,11 +109,11 @@ module udma_i2s_reg_if #(
     output logic                [2:0] cfg_master_i2s_words_o,
 
     output logic                      cfg_slave_gen_clk_en_o,
-    input  logic                      cfg_slave_gen_clk_en_i,
+    input  logic                      cfg_slave_gen_clk_en_i, //never used
     output logic               [15:0] cfg_slave_gen_clk_div_o,
 
     output logic                      cfg_master_gen_clk_en_o,
-    input  logic                      cfg_master_gen_clk_en_i,
+    input  logic                      cfg_master_gen_clk_en_i, //never used
     output logic               [15:0] cfg_master_gen_clk_div_o
 
 );
@@ -150,7 +158,13 @@ module udma_i2s_reg_if #(
     logic                [1:0] r_slave_pdm_mode;
     logic                [9:0] r_slave_pdm_decimation;
     logic                [2:0] r_slave_pdm_shift;
-
+    
+    // DSP reg
+    logic                      r_dsp_en;
+    logic               [15:0] r_dsp_setup_time;
+    logic                [1:0] r_dsp_mode;
+    
+    
     logic                      r_master_i2s_en;
     logic                      r_master_i2s_lsb_first;
     logic                      r_master_i2s_2ch;
@@ -179,6 +193,15 @@ module udma_i2s_reg_if #(
     assign s_update_clk     = (cfg_valid_i & ~cfg_rwn_i) & (s_wr_addr == `REG_I2S_CLKCFG_SETUP);
     assign cfg_update_clk_o = r_update_clk;
 
+    //DSP reg
+    assign cfg_dsp_en_o  = r_dsp_en;
+    assign cfg_dsp_setup_time_o    = r_dsp_setup_time;
+    assign cfg_dsp_mode_o   = r_dsp_mode;
+    
+    
+    
+    
+    
     assign cfg_rx_startaddr_o  = r_rx_startaddr;
     assign cfg_rx_size_o       = r_rx_size;
     assign cfg_rx_datasize_o   = r_rx_datasize;
@@ -274,11 +297,12 @@ module udma_i2s_reg_if #(
             r_update_clk <= s_update_clk;
     end
 
+
     always_ff @(posedge clk_i, negedge rstn_i) 
     begin
         if(~rstn_i) 
         begin
-            // SPI REGS
+            // I2S REGS
             r_rx_startaddr     <= 'h0;
             r_rx_size          <= 'h0;
             r_rx_datasize      <= 'h2;
@@ -307,6 +331,11 @@ module udma_i2s_reg_if #(
             r_slave_pdm_mode       <= 'h0;
             r_slave_pdm_decimation <= 'h0;
             r_slave_pdm_shift      <= 'h0;
+            
+            r_dsp_en               <= 'h0;
+            r_dsp_setup_time       <= 'h0;
+            r_dsp_mode             <= 'h0;
+            
             r_master_i2s_en        <= 'h0;
             r_master_i2s_lsb_first <= 'h0;
             r_master_i2s_2ch       <= 'h0;
@@ -393,6 +422,18 @@ module udma_i2s_reg_if #(
                         r_slave_pdm_shift      <= cfg_data_i[2:0];
                     end
                 end
+                
+                //it must be written before to enable the clock on slave
+                `REG_I2S_DSP_SETUP:
+                begin
+                    if(!r_slave_clk_en)
+                    begin
+                        r_dsp_en         <= cfg_data_i[31];
+                        r_dsp_mode       <= cfg_data_i[17:16];  
+                        r_dsp_setup_time <= cfg_data_i[15:0];                                             
+                    end
+                end
+                
                 endcase
             end
         end
@@ -449,6 +490,13 @@ module udma_i2s_reg_if #(
                             r_slave_pdm_mode,
                             r_slave_pdm_decimation,
                             r_slave_pdm_shift };
+        
+        `REG_I2S_DSP_SETUP:
+            cfg_data_o = {  r_dsp_en,
+                            13'h0,
+                            r_dsp_mode,
+                            r_dsp_setup_time };
+
         default:
             cfg_data_o = 'h0;
         endcase

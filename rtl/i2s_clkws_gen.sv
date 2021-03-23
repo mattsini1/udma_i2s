@@ -24,8 +24,13 @@ module i2s_clkws_gen (
 
                       input logic        pdm_clk_i,
 
-                      input logic [15:0] cfg_div_0_i,
-                      input logic [15:0] cfg_div_1_i,
+                      input logic [15:0] cfg_div_0_i,  //master clock divider
+                      input logic [15:0] cfg_div_1_i,  //slave clock divider
+                      
+                      //DSP reg
+                      input logic        cfg_dsp_en_i,
+                      input logic [15:0] cfg_dsp_setup_time_i,
+                      input logic [1:0]  cfg_dsp_mode_i,
 
                       input logic [4:0]  cfg_word_size_0_i,
                       input logic [2:0]  cfg_word_num_0_i,
@@ -60,6 +65,9 @@ module i2s_clkws_gen (
    logic                   s_clk_master;
    logic                   s_clk_slave;
 
+   logic                   s_sync_ws_slv_en;
+   logic                   s_sync_ws_dsp_en;
+   
    logic                   s_ws_int_master;
    logic                   s_ws_int_slave;
 
@@ -77,6 +85,9 @@ module i2s_clkws_gen (
    assign pad_master_sck_o  = s_clk_master;
    assign pad_master_ws_oe  = master_en_i & ~sel_master_ext_i;
    assign pad_master_ws_o   = s_ws_master;
+   
+   assign s_sync_ws_slv_en = slave_en_i & !cfg_dsp_en_i;
+   assign s_sync_ws_dsp_en = slave_en_i & cfg_dsp_en_i;
 
    assign s_clk_gen_0_en = pdm_en_i | ((master_en_i | slave_en_i) & ((~sel_master_num_i & ~sel_master_ext_i) | (~sel_slave_num_i & ~sel_slave_ext_i)));
    assign s_clk_gen_1_en =             (master_en_i | slave_en_i) & (( sel_master_num_i & ~sel_master_ext_i) | ( sel_slave_num_i & ~sel_slave_ext_i));
@@ -205,8 +216,17 @@ module i2s_clkws_gen (
      (
       .clk_i(s_clk_slave),
       .rstn_i(rstn_i),
-      .serial_i(slave_en_i),
+      .serial_i(s_sync_ws_slv_en),
       .serial_o(s_ws_gen_1_en)
+      );
+   
+   //WS DSP sync
+   pulp_sync #(2) i_slave_dsp_en_sync
+     (
+      .clk_i(s_clk_slave),
+      .rstn_i(rstn_i),
+      .serial_i(s_sync_ws_dsp_en),
+      .serial_o(s_ws_gen_dsp_en)
       );
 
    i2s_ws_gen i_ws_gen_0
@@ -228,11 +248,26 @@ module i2s_clkws_gen (
       .cfg_data_size_i ( cfg_word_size_1_i  ),
       .cfg_word_num_i  ( cfg_word_num_1_i   )
       );
-
+   
+   //WS DSP generator
+   i2s_dsp_ws_gen i_ws_dsp_gen(
+     .sck_i(s_clk_slave),
+     .rstn_i(rstn_i),
+     .cfg_ws_en_i(s_ws_gen_dsp_en),
+  
+     .cfg_num_bits_i(cfg_word_size_1_i),
+     .cfg_num_words_i(cfg_word_num_1_i),
+  
+     .cfg_dsp_setup_time_i(cfg_dsp_setup_time_i),
+     .cfg_dsp_mode_i(cfg_dsp_mode_i),
+  
+     .ws_o(s_ws_dsp_int)
+   );
 
    assign s_ws_int_master = sel_master_num_i ? s_ws_int_1 : s_ws_int_0;
-   assign s_ws_int_slave  = sel_slave_num_i  ? s_ws_int_1 : s_ws_int_0;
-
+   //assign s_ws_int_slave  = sel_slave_num_i  ? s_ws_int_1 : s_ws_int_0;
+   assign s_ws_int_slave  = cfg_dsp_en_i? s_ws_dsp_int :(sel_slave_num_i  ? s_ws_int_1 : s_ws_int_0) ;
+   
    assign s_ws_ext_master = sel_master_num_i ? pad_slave_ws_i : pad_master_ws_i;
    assign s_ws_ext_slave  = sel_slave_num_i  ? pad_slave_ws_i : pad_master_ws_i;
 
