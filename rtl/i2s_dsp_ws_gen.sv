@@ -1,0 +1,142 @@
+module i2s_dsp_ws_gen
+(
+  input logic sck_i,
+  input logic rstn_i,
+  input logic cfg_ws_en_i,
+  
+  input logic [4:0] cfg_num_bits_i,
+  input logic [2:0] cfg_num_words_i,
+  
+  input logic [15:0] cfg_dsp_setup_time_i,
+  input logic [1:0]  cfg_dsp_mode_i,
+  
+  output logic ws_o
+  
+);
+  
+  logic [15:0] limit; //max 8 devices
+  enum {IDLE,WAIT,PULSE,PERIOD} state, next_state; 
+  /*
+   NB: This is the WS generator for DSP protocol and it has the following op mode
+   cfg_dsp_mode_i  00 or 10 : drive SW line on the negedge sck_i --> RX fifo must sample data on posedge
+   cfg_dsp_mode_i  01 : drive SW line on the posedge sck_i --> RX fifo must sample data on negedge
+   
+   IDLE: ws_o line not driven
+   WAIT: ws_o line not driven for the setup time of the slave
+   PULSE: ws_o line in high level for 1 sck_i
+   PERIOD: ws_o line in low level for (cfg_num_bits_i * cfg_num_words_i)-1
+*/
+  logic [15:0] count;
+  logic set;
+  
+  assign limit = ((cfg_num_bits_i+1) * (cfg_num_words_i+1)-1);  
+
+  always_ff@ (negedge sck_i, negedge rstn_i)
+  begin
+    if(cfg_dsp_mode_i[0]==1'b0) begin
+      if (next_state==IDLE)
+          count <= 'h0;
+        state <= next_state;
+    end
+  end
+
+  always_ff@ (posedge sck_i, negedge rstn_i)
+  begin
+    if (rstn_i == 1'b0) begin
+      count <= 'h0;
+      state <= IDLE;
+    end else
+    if (cfg_ws_en_i==1'b1) begin
+       if(set==1'b1)
+          count <= 'h0;
+       else 
+          count <= count+1;
+    end 
+  end 
+
+always_ff@ (posedge sck_i, negedge rstn_i)
+  begin
+    if(cfg_dsp_mode_i[0]==1'b1) begin
+      if (next_state==IDLE)
+          count <= 'h0;
+      state <= next_state;
+    end
+  end
+
+  always_comb
+  begin
+    set=1'b0;
+    
+    case(state)
+    IDLE:
+        begin
+          ws_o=1'b0;
+          set=1'b0;
+          if(cfg_ws_en_i==1'b1)
+          begin
+            if(cfg_dsp_setup_time_i!= 'd0) begin
+               next_state = WAIT;
+               set=1'b1;
+            end else 
+               next_state = PULSE;
+          end
+          else
+          begin
+            next_state = IDLE;
+           
+          end
+        end
+
+    WAIT:
+        begin
+          ws_o=1'b0;
+           if(cfg_ws_en_i==1'b1)
+           begin
+             if(count<cfg_dsp_setup_time_i)
+               next_state = WAIT;
+             else
+             begin
+               next_state = PULSE;
+             end
+           end
+           else
+           next_state = IDLE;
+        end
+
+    PULSE:
+         begin
+           if(cfg_ws_en_i==1'b1)
+           begin
+             next_state = PERIOD;
+             ws_o=1'b1;
+             set=1'b1;
+           end
+           else
+           begin
+             next_state = IDLE;
+           end
+        end
+
+    PERIOD:
+          begin
+           ws_o=1'b0;
+           if(cfg_ws_en_i==1'b1)
+           begin
+             if (cfg_dsp_mode_i==2'b00 | cfg_dsp_mode_i==2'b10) begin
+                if(count<limit) 
+                  next_state = PERIOD;
+                else
+                  next_state = PULSE;
+             end else begin
+                if(count<limit-1) 
+                  next_state = PERIOD;
+                else
+                  next_state = PULSE;
+             end
+           end else
+              next_state = IDLE;
+          end
+
+    endcase
+  end
+endmodule
