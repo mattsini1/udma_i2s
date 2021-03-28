@@ -30,7 +30,7 @@ module i2s_clkws_gen (
                       //DSP reg
                       input logic        cfg_dsp_en_i,
                       input logic [15:0] cfg_dsp_setup_time_i,
-                      input logic [1:0]  cfg_dsp_mode_i,
+                      input logic        cfg_dsp_mode_i,
 
                       input logic [4:0]  cfg_word_size_0_i,
                       input logic [2:0]  cfg_word_num_0_i,

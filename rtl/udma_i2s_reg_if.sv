@@ -84,7 +84,8 @@ module udma_i2s_reg_if #(
     //DSP reg
     output logic                      cfg_dsp_en_o,
     output logic               [15:0] cfg_dsp_setup_time_o,
-    output logic               [1:0]   cfg_dsp_mode_o,
+    output logic                      cfg_dsp_mode_o,
+    output logic                [4:0] cfg_dsp_offset_o,
 
     output logic                      cfg_master_sel_num_o,
     output logic                      cfg_master_sel_ext_o,
@@ -162,8 +163,8 @@ module udma_i2s_reg_if #(
     // DSP reg
     logic                      r_dsp_en;
     logic               [15:0] r_dsp_setup_time;
-    logic                [1:0] r_dsp_mode;
-    
+    logic                      r_dsp_mode;
+    logic                [4:0] r_dsp_offset;
     
     logic                      r_master_i2s_en;
     logic                      r_master_i2s_lsb_first;
@@ -197,7 +198,7 @@ module udma_i2s_reg_if #(
     assign cfg_dsp_en_o  = r_dsp_en;
     assign cfg_dsp_setup_time_o    = r_dsp_setup_time;
     assign cfg_dsp_mode_o   = r_dsp_mode;
-    
+    assign cfg_dsp_offset_o = r_dsp_offset;
     
     
     
@@ -335,6 +336,7 @@ module udma_i2s_reg_if #(
             r_dsp_en               <= 'h0;
             r_dsp_setup_time       <= 'h0;
             r_dsp_mode             <= 'h0;
+            r_dsp_offset           <= 'h0;
             
             r_master_i2s_en        <= 'h0;
             r_master_i2s_lsb_first <= 'h0;
@@ -429,7 +431,8 @@ module udma_i2s_reg_if #(
                     if(!r_slave_clk_en)
                     begin
                         r_dsp_en         <= cfg_data_i[31];
-                        r_dsp_mode       <= cfg_data_i[17:16];  
+                        r_dsp_offset     <= cfg_data_i[24:20];
+                        r_dsp_mode       <= cfg_data_i[16];  
                         r_dsp_setup_time <= cfg_data_i[15:0];                                             
                     end
                 end
@@ -493,7 +496,9 @@ module udma_i2s_reg_if #(
         
         `REG_I2S_DSP_SETUP:
             cfg_data_o = {  r_dsp_en,
-                            13'h0,
+                            6'h0,
+                            r_dsp_offset,
+                            3'h0,
                             r_dsp_mode,
                             r_dsp_setup_time };
 

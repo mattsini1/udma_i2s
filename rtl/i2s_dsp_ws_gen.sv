@@ -8,7 +8,7 @@ module i2s_dsp_ws_gen
   input logic [2:0] cfg_num_words_i,
   
   input logic [15:0] cfg_dsp_setup_time_i,
-  input logic [1:0]  cfg_dsp_mode_i,
+  input logic   cfg_dsp_mode_i,
   
   output logic ws_o
   
@@ -18,8 +18,8 @@ module i2s_dsp_ws_gen
   enum {IDLE,WAIT,PULSE,PERIOD} state, next_state; 
   /*
    NB: This is the WS generator for DSP protocol and it has the following op mode
-   cfg_dsp_mode_i  00 or 10 : drive SW line on the negedge sck_i --> RX fifo must sample data on posedge
-   cfg_dsp_mode_i  01 : drive SW line on the posedge sck_i --> RX fifo must sample data on negedge
+   cfg_dsp_mode_i  0 : drive SW line on the negedge sck_i --> RX fifo must sample data on posedge
+   cfg_dsp_mode_i  1 : drive SW line on the posedge sck_i --> RX fifo must sample data on negedge
    
    IDLE: ws_o line not driven
    WAIT: ws_o line not driven for the setup time of the slave
@@ -33,7 +33,7 @@ module i2s_dsp_ws_gen
 
   always_ff@ (negedge sck_i, negedge rstn_i)
   begin
-    if(cfg_dsp_mode_i[0]==1'b0) begin
+    if(cfg_dsp_mode_i==1'b0) begin
       if (next_state==IDLE)
           count <= 'h0;
         state <= next_state;
@@ -56,7 +56,7 @@ module i2s_dsp_ws_gen
 
 always_ff@ (posedge sck_i, negedge rstn_i)
   begin
-    if(cfg_dsp_mode_i[0]==1'b1) begin
+    if(cfg_dsp_mode_i==1'b1) begin
       if (next_state==IDLE)
           count <= 'h0;
       state <= next_state;
@@ -122,7 +122,7 @@ always_ff@ (posedge sck_i, negedge rstn_i)
            ws_o=1'b0;
            if(cfg_ws_en_i==1'b1)
            begin
-             if (cfg_dsp_mode_i==2'b00 | cfg_dsp_mode_i==2'b10) begin
+             if (cfg_dsp_mode_i==1'b0 ) begin
                 if(count<limit) 
                   next_state = PERIOD;
                 else

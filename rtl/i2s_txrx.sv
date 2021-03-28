@@ -49,7 +49,9 @@ module i2s_txrx (
     input  logic                      cfg_dsp_en_i,
     input  logic               [15:0] cfg_dsp_setup_time_i,
     input  logic                [1:0] cfg_dsp_mode_i,
+    input  logic                [4:0] cfg_dsp_offset_i,
     
+
     input  logic                      cfg_rx_continuous_i,
 
     input  logic                      cfg_slave_i2s_lsb_first_i,
@@ -141,7 +143,8 @@ module i2s_txrx (
         .cfg_num_word_i    ( cfg_slave_i2s_words_i     ),
         .cfg_lsb_first_i     ( cfg_slave_i2s_lsb_first_i ),
         .cfg_rx_continuous_i ( cfg_rx_continuous_i     ),
-        .cfg_dsp_mode_i      ( cfg_dsp_mode_i            )
+        .cfg_dsp_mode_i      ( cfg_dsp_mode_i          ),
+        .cfg_dsp_offset_i    ( cfg_dsp_offset_i        )
     );
 
     pdm_top i_pdm (
