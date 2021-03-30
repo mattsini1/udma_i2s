@@ -21,8 +21,8 @@ module i2s_rx_dsp_channel (
     input  logic                    cfg_lsb_first_i,
     input  logic                    cfg_rx_continuous_i,
     
-    input  logic                    cfg_dsp_mode_i,
-    input  logic              [4:0] cfg_dsp_offset_i
+    input  logic                    cfg_slave_dsp_mode_i,
+    input  logic              [4:0] cfg_slave_dsp_offset_i
  );
 
     logic [31:0] r_shiftreg_ch0;
@@ -85,7 +85,7 @@ module i2s_rx_dsp_channel (
 	        state <= IDLE;	                            
         end else begin
            
-           if(next_state!=OFFSET & cfg_dsp_mode_i==1'b0) begin
+           if(next_state!=OFFSET & cfg_slave_dsp_mode_i==1'b0) begin
 	       
 	            /*  STANDARD DSP MODE FOR CODEC DSP_MODE : 10 
 	
@@ -230,7 +230,7 @@ module i2s_rx_dsp_channel (
  // it is used to sample data from sd lines only on negedge
     always_ff  @(negedge sck_i)
     begin
-        if(next_state!=OFFSET & cfg_dsp_mode_i==1'b1) begin
+        if(next_state!=OFFSET & cfg_slave_dsp_mode_i==1'b1) begin
 	  
 	          /*  DSP FOR STANDARD CODEC DSP   
 	
@@ -398,12 +398,12 @@ module i2s_rx_dsp_channel (
                   //wait WS
                   //start=1'b0;
                                
-                  if(i2s_ws_i==1'b1 & cfg_dsp_offset_i==5'd0) begin
+                  if(i2s_ws_i==1'b1 & cfg_slave_dsp_offset_i==5'd0) begin
                       // offset 0
                       next_state=RUN;
                       start=1'b1;
                   end else begin
-                      if(i2s_ws_i==1'b1 & cfg_dsp_offset_i!=5'd0) begin
+                      if(i2s_ws_i==1'b1 & cfg_slave_dsp_offset_i!=5'd0) begin
                          next_state=OFFSET;
                          start=1'b0;
                         end
@@ -414,7 +414,7 @@ module i2s_rx_dsp_channel (
 
         OFFSET:
              begin                          
-                if(r_count_offset==cfg_dsp_offset_i) begin
+                if(r_count_offset==cfg_slave_dsp_offset_i) begin
                     next_state=RUN;
                     start=1'b1;
                 end else begin 
