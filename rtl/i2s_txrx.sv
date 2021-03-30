@@ -46,10 +46,12 @@ module i2s_txrx (
     input  logic                      cfg_master_en_i,
     
     //DSP reg
-    input  logic                      cfg_dsp_en_i,
-    input  logic               [15:0] cfg_dsp_setup_time_i,
-    input  logic                [1:0] cfg_dsp_mode_i,
+    input  logic                      cfg_slave_dsp_en_i,
+    input  logic               [15:0] cfg_slave_dsp_setup_time_i,
+    input  logic                [1:0] cfg_slave_dsp_mode_i,
+    input  logic                [4:0] cfg_slave_dsp_offset_i,
     
+
     input  logic                      cfg_rx_continuous_i,
 
     input  logic                      cfg_slave_i2s_lsb_first_i,
@@ -89,8 +91,8 @@ module i2s_txrx (
     logic        s_i2s_slv_en;
     logic        s_i2s_slv_dsp_en;
     
-    assign s_i2s_slv_en = cfg_slave_en_i & !cfg_slave_pdm_en_i & !cfg_dsp_en_i;
-    assign s_i2s_slv_dsp_en = cfg_slave_en_i & cfg_dsp_en_i;
+    assign s_i2s_slv_en = cfg_slave_en_i & !cfg_slave_pdm_en_i & !cfg_slave_dsp_en_i;
+    assign s_i2s_slv_dsp_en = cfg_slave_en_i & cfg_slave_dsp_en_i;
 
     assign fifo_rx_data_o            = cfg_slave_pdm_en_i ? {16'h0,s_pdm_fifo_data} : s_i2s_slv_fifo_data;
     assign fifo_rx_data_valid_o      = cfg_slave_pdm_en_i ? s_pdm_fifo_data_valid   : s_i2s_slv_fifo_data_valid;
@@ -141,7 +143,8 @@ module i2s_txrx (
         .cfg_num_word_i    ( cfg_slave_i2s_words_i     ),
         .cfg_lsb_first_i     ( cfg_slave_i2s_lsb_first_i ),
         .cfg_rx_continuous_i ( cfg_rx_continuous_i     ),
-        .cfg_dsp_mode_i      ( cfg_dsp_mode_i            )
+        .cfg_slave_dsp_mode_i      ( cfg_slave_dsp_mode_i          ),
+        .cfg_slave_dsp_offset_i    ( cfg_slave_dsp_offset_i        )
     );
 
     pdm_top i_pdm (

@@ -109,9 +109,11 @@ module udma_i2s_top
     
     
     //I2S DSP
-    logic                      s_dsp_en;
-    logic               [15:0] s_dsp_setup_time;
-    logic               [1:0]  s_dsp_mode;
+    logic                      s_slave_dsp_en;
+    logic               [15:0] s_slave_dsp_setup_time;
+    logic                      s_slave_dsp_mode;
+    logic                [4:0] s_slave_dsp_offset;
+
     logic                      s_cfg_rx_continuous;
     
     logic                [1:0] s_master_i2s_mode;
@@ -196,10 +198,18 @@ module udma_i2s_top
 
         .cfg_pdm_clk_en_o          ( s_pdm_clk_en           ), 
         
-        //DSP reg
-        .cfg_dsp_en_o              ( s_dsp_en               ),
+        //DSP reg slave
+        .cfg_slave_dsp_en_o              ( s_slave_dsp_en               ),
+        .cfg_slave_dsp_setup_time_o      ( s_slave_dsp_setup_time       ),
+        .cfg_slave_dsp_mode_o            ( s_slave_dsp_mode             ),
+        .cfg_slave_dsp_offset_o          ( s_slave_dsp_offset           ),
+
+        //DSP reg master
+       /* .cfg_dsp_en_o              ( s_dsp_en               ),
         .cfg_dsp_setup_time_o      ( s_dsp_setup_time       ),
         .cfg_dsp_mode_o            ( s_dsp_mode             ),
+        .cfg_dsp_offset_o          ( s_dsp_offset           ),*/
+        
 
         .cfg_master_sel_num_o      ( s_sel_master_num       ),
         .cfg_master_sel_ext_o      ( s_sel_master_ext       ),
@@ -307,10 +317,10 @@ module udma_i2s_top
         .cfg_div_1_i       ( s_slave_gen_clk_div  ),
         .cfg_div_0_i       ( s_master_gen_clk_div ),
         
-        //DSP reg
-        .cfg_dsp_en_i              ( s_dsp_en               ),
-        .cfg_dsp_setup_time_i      ( s_dsp_setup_time       ),
-        .cfg_dsp_mode_i            ( s_dsp_mode          ),
+        //DSP reg slave
+        .cfg_slave_dsp_en_i              ( s_slave_dsp_en               ),
+        .cfg_slave_dsp_setup_time_i      ( s_slave_dsp_setup_time       ),
+        .cfg_slave_dsp_mode_i            ( s_slave_dsp_mode          ),
 
         .cfg_word_size_0_i ( s_master_i2s_bits_word ),
         .cfg_word_num_0_i  ( s_master_i2s_words     ),
@@ -357,10 +367,13 @@ module udma_i2s_top
         .cfg_master_en_i            ( s_master_i2s_en        ),
         
         //DSP reg
-        .cfg_dsp_en_i              ( s_dsp_en               ),
-        .cfg_dsp_setup_time_i      ( s_dsp_setup_time       ),
-        .cfg_dsp_mode_i            ( s_dsp_mode             ),
+        .cfg_slave_dsp_en_i              ( s_slave_dsp_en               ),
+        .cfg_slave_dsp_setup_time_i      ( s_slave_dsp_setup_time       ),
+        .cfg_slave_dsp_mode_i            ( s_slave_dsp_mode             ),
+        .cfg_slave_dsp_offset_i          ( s_slave_dsp_offset             ),
+
         .cfg_rx_continuous_i       ( cfg_rx_continuous_o    ),
+
          
         .cfg_slave_pdm_en_i         ( s_slave_pdm_en         ),
         .cfg_slave_pdm_mode_i       ( s_slave_pdm_mode       ),
