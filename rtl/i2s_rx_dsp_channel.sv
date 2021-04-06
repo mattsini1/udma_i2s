@@ -17,12 +17,12 @@ module i2s_rx_dsp_channel (
     input  logic                    cfg_en_i, 
     input  logic                    cfg_2ch_i, 
     input  logic              [4:0] cfg_num_bits_i, 
-    input  logic              [2:0] cfg_num_word_i, 
+    input  logic              [3:0] cfg_num_word_i, 
     input  logic                    cfg_lsb_first_i,
     input  logic                    cfg_rx_continuous_i,
     
     input  logic                    cfg_slave_dsp_mode_i,
-    input  logic              [4:0] cfg_slave_dsp_offset_i
+    input  logic              [8:0] cfg_slave_dsp_offset_i
  );
 
     logic [31:0] r_shiftreg_ch0;
@@ -31,7 +31,7 @@ module i2s_rx_dsp_channel (
     logic [31:0] r_shiftreg_ch0_shadow;
     logic [31:0] r_shiftreg_ch1_shadow;
     
-    logic [4:0]  r_count_offset;
+    logic [8:0]  r_count_offset;
 
     logic [4:0]  r_count_bit;
     
@@ -217,7 +217,7 @@ module i2s_rx_dsp_channel (
                  state <= next_state;          
             end else begin
               // here only for DSP_MODE=1 WS on rising
-               if(next_state==OFFSET) begin
+               if(next_state==OFFSET & cfg_slave_dsp_mode_i==1'b1) begin
                   r_count_offset <= r_count_offset+1;         
             	   state <= next_state;
                end
@@ -371,7 +371,7 @@ module i2s_rx_dsp_channel (
                  	
         end else begin
            // here only for DSP_MODE=0 WS on falling
-            if(next_state==OFFSET) begin
+            if(next_state==OFFSET & cfg_slave_dsp_mode_i==1'b0) begin
                 r_count_offset <= r_count_offset+1;         
             	state <= next_state;
             end
@@ -398,12 +398,12 @@ module i2s_rx_dsp_channel (
                   //wait WS
                   //start=1'b0;
                                
-                  if(i2s_ws_i==1'b1 & cfg_slave_dsp_offset_i==5'd0) begin
+                  if(i2s_ws_i==1'b1 & cfg_slave_dsp_offset_i==9'd0) begin
                       // offset 0
                       next_state=RUN;
                       start=1'b1;
                   end else begin
-                      if(i2s_ws_i==1'b1 & cfg_slave_dsp_offset_i!=5'd0) begin
+                      if(i2s_ws_i==1'b1 & cfg_slave_dsp_offset_i!=9'd0) begin
                          next_state=OFFSET;
                          start=1'b0;
                         end

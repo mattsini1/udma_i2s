@@ -5,7 +5,7 @@ module i2s_dsp_ws_gen
   input logic cfg_ws_en_i,
   
   input logic [4:0] cfg_num_bits_i,
-  input logic [2:0] cfg_num_words_i,
+  input logic [3:0] cfg_num_words_i,
   
   input logic [15:0] cfg_dsp_setup_time_i,
   input logic   cfg_dsp_mode_i,
@@ -14,7 +14,7 @@ module i2s_dsp_ws_gen
   
 );
   
-  logic [15:0] limit; //max 8 devices
+  logic [15:0] limit;
   enum {IDLE,WAIT,PULSE,PERIOD} state, next_state; 
   /*
    NB: This is the WS generator for DSP protocol and it has the following op mode

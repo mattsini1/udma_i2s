@@ -15,5 +15,6 @@ udma_i2s:
     rtl/udma_i2s_top.sv,
     rtl/i2s_dsp_ws_gen.sv,
     rtl/i2s_rx_dsp_channel.sv,
+    rtl/i2s_tx_dsp_channel.sv,
   ]
 
