@@ -101,7 +101,7 @@ module udma_i2s_top
     logic                [1:0] s_slave_i2s_mode;
     logic                      s_slave_i2s_lsb_first;
     logic                [4:0] s_slave_i2s_bits_word;
-    logic                [2:0] s_slave_i2s_words;
+    logic                [3:0] s_slave_i2s_words;
 
     logic                [1:0] s_slave_pdm_mode;
     logic                [9:0] s_slave_pdm_decimation;
@@ -112,14 +112,19 @@ module udma_i2s_top
     logic                      s_slave_dsp_en;
     logic               [15:0] s_slave_dsp_setup_time;
     logic                      s_slave_dsp_mode;
-    logic                [4:0] s_slave_dsp_offset;
+    logic                [8:0] s_slave_dsp_offset;
+
+    logic                      s_master_dsp_en;
+    logic               [15:0] s_master_dsp_setup_time;
+    logic                      s_master_dsp_mode;
+    logic                [8:0] s_master_dsp_offset;
 
     logic                      s_cfg_rx_continuous;
     
     logic                [1:0] s_master_i2s_mode;
     logic                      s_master_i2s_lsb_first;
     logic                [4:0] s_master_i2s_bits_word;
-    logic                [2:0] s_master_i2s_words;
+    logic                [3:0] s_master_i2s_words;
 
     logic                      s_slave_gen_clk_eni;
     logic                      s_slave_gen_clk_eno;
@@ -128,6 +133,7 @@ module udma_i2s_top
     logic                      s_master_gen_clk_eni;
     logic                      s_master_gen_clk_eno;
     logic               [15:0] s_master_gen_clk_div;
+    logic                      s_master_ready_to_send;
 
 
     logic               [31:0] s_fifo_data;
@@ -205,10 +211,10 @@ module udma_i2s_top
         .cfg_slave_dsp_offset_o          ( s_slave_dsp_offset           ),
 
         //DSP reg master
-       /* .cfg_dsp_en_o              ( s_dsp_en               ),
-        .cfg_dsp_setup_time_o      ( s_dsp_setup_time       ),
-        .cfg_dsp_mode_o            ( s_dsp_mode             ),
-        .cfg_dsp_offset_o          ( s_dsp_offset           ),*/
+        .cfg_master_dsp_en_o              ( s_master_dsp_en               ),
+        .cfg_master_dsp_setup_time_o      ( s_master_dsp_setup_time       ),
+        .cfg_master_dsp_mode_o            ( s_master_dsp_mode             ),
+        .cfg_master_dsp_offset_o          ( s_master_dsp_offset           ),
         
 
         .cfg_master_sel_num_o      ( s_sel_master_num       ),
@@ -320,7 +326,12 @@ module udma_i2s_top
         //DSP reg slave
         .cfg_slave_dsp_en_i              ( s_slave_dsp_en               ),
         .cfg_slave_dsp_setup_time_i      ( s_slave_dsp_setup_time       ),
-        .cfg_slave_dsp_mode_i            ( s_slave_dsp_mode          ),
+        .cfg_slave_dsp_mode_i            ( s_slave_dsp_mode             ),
+
+        .cfg_master_dsp_en_i             ( s_master_dsp_en               ),
+        .cfg_master_dsp_setup_time_i     ( s_master_dsp_setup_time       ),
+        .cfg_master_dsp_mode_i           ( s_master_dsp_mode             ),
+        .master_ready_to_send            ( s_master_ready_to_send        ),
 
         .cfg_word_size_0_i ( s_master_i2s_bits_word ),
         .cfg_word_num_0_i  ( s_master_i2s_words     ),
@@ -370,7 +381,13 @@ module udma_i2s_top
         .cfg_slave_dsp_en_i              ( s_slave_dsp_en               ),
         .cfg_slave_dsp_setup_time_i      ( s_slave_dsp_setup_time       ),
         .cfg_slave_dsp_mode_i            ( s_slave_dsp_mode             ),
-        .cfg_slave_dsp_offset_i          ( s_slave_dsp_offset             ),
+        .cfg_slave_dsp_offset_i          ( s_slave_dsp_offset           ),
+
+        .cfg_master_dsp_en_i             ( s_master_dsp_en             ),
+        .cfg_master_dsp_setup_time_i     ( s_master_dsp_setup_time     ),
+        .cfg_master_dsp_mode_i           ( s_master_dsp_mode           ),
+        .cfg_master_dsp_offset_i         ( s_master_dsp_offset         ),
+        .master_ready_to_send            ( s_master_ready_to_send      ),
 
         .cfg_rx_continuous_i       ( cfg_rx_continuous_o    ),
 
