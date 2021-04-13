@@ -384,7 +384,7 @@ module udma_i2s_reg_if #(
                     r_rx_size        <= cfg_data_i[TRANS_SIZE-1:0];
                 `REG_RX_CFG:
                 begin
-                    r_rx_clr          = cfg_data_i[5];
+                    r_rx_clr          = cfg_data_i[6];
                     r_rx_en           = cfg_data_i[4];
                     r_rx_datasize    <= cfg_data_i[2:1];
                     r_rx_continuous  <= cfg_data_i[0];
@@ -395,7 +395,7 @@ module udma_i2s_reg_if #(
                     r_tx_size        <= cfg_data_i[TRANS_SIZE-1:0];
                 `REG_TX_CFG:
                 begin
-                    r_tx_clr          = cfg_data_i[5];
+                    r_tx_clr          = cfg_data_i[6];
                     r_tx_en           = cfg_data_i[4];
                     r_tx_datasize    <= cfg_data_i[2:1];
                     r_tx_continuous  <= cfg_data_i[0];
@@ -415,59 +415,59 @@ module udma_i2s_reg_if #(
                 end
                 `REG_I2S_SLV_SETUP:   
                 begin
-                    if(!r_slave_clk_en)
-                    begin
+                    //if(!r_slave_clk_en)
+                    //begin
                         r_slave_i2s_en         <= cfg_data_i[31];
                         r_slave_i2s_2ch        <= cfg_data_i[17];
                         r_slave_i2s_lsb_first  <= cfg_data_i[16];
                         r_slave_i2s_bits_word  <= cfg_data_i[12:8];
                         r_slave_i2s_words      <= cfg_data_i[3:0];
-                    end
+                    //end
                 end
                 `REG_I2S_MST_SETUP:   
                 begin
-                    if(!r_master_clk_en)
-                    begin
+                    //if(!r_master_clk_en)
+                    //begin
                         r_master_i2s_en        <= cfg_data_i[31];
                         r_master_i2s_2ch       <= cfg_data_i[17];
                         r_master_i2s_lsb_first <= cfg_data_i[16];
                         r_master_i2s_bits_word <= cfg_data_i[12:8];
                         r_master_i2s_words     <= cfg_data_i[3:0];
-                    end
+                    //end
                 end
                 `REG_I2S_PDM_SETUP:
                 begin
-                    if(!r_slave_clk_en)
-                    begin
+                    //if(!r_slave_clk_en)
+                    //begin
                         r_slave_pdm_en         <= cfg_data_i[31];
                         r_slave_pdm_mode       <= cfg_data_i[14:13];
                         r_slave_pdm_decimation <= cfg_data_i[12:3];
                         r_slave_pdm_shift      <= cfg_data_i[2:0];
-                    end
+                    //end
                 end
                 
                 //it must be written before to enable the clock on slave
                 `REG_I2S_SLV_DSP_SETUP:
                 begin
-                    if(!r_slave_clk_en)
-                    begin
+                    //if(!r_slave_clk_en)
+                    //begin
                         r_slave_dsp_en         <= cfg_data_i[31];
                         r_slave_dsp_offset     <= cfg_data_i[28:20];
                         r_slave_dsp_mode       <= cfg_data_i[16];  
                         r_slave_dsp_setup_time <= cfg_data_i[15:0];                                             
-                    end
+                    //end
                 end
                 
                 //it must be written before to enable the clock on master
                 `REG_I2S_MST_DSP_SETUP:
                 begin
-                    if(!r_master_clk_en)
-                    begin
+                    //if(!r_master_clk_en)
+                    //begin
                         r_master_dsp_en         <= cfg_data_i[31];
                         r_master_dsp_offset     <= cfg_data_i[28:20];
                         r_master_dsp_mode       <= cfg_data_i[16];  
                         r_master_dsp_setup_time <= cfg_data_i[15:0];                                             
-                    end
+                    //end
                 end
 
 
@@ -486,13 +486,13 @@ module udma_i2s_reg_if #(
         `REG_RX_SIZE:
             cfg_data_o[TRANS_SIZE-1:0] = cfg_rx_bytes_left_i;
         `REG_RX_CFG:
-            cfg_data_o = {26'h0,cfg_rx_pending_i,cfg_rx_en_i,1'b0,r_rx_datasize,r_rx_continuous};
+            cfg_data_o = {25'h0,cfg_rx_clr_o,cfg_rx_pending_i,cfg_rx_en_i,1'b0,r_rx_datasize,r_rx_continuous};
         `REG_TX_SADDR:
             cfg_data_o = cfg_tx_curr_addr_i;
         `REG_TX_SIZE:
             cfg_data_o[TRANS_SIZE-1:0] = cfg_tx_bytes_left_i;
         `REG_TX_CFG:
-            cfg_data_o = {26'h0,cfg_tx_pending_i,cfg_tx_en_i,1'b0,r_tx_datasize,r_tx_continuous};
+            cfg_data_o = {25'h0,cfg_tx_clr_o,cfg_tx_pending_i,cfg_tx_en_i,1'b0,r_tx_datasize,r_tx_continuous};
         `REG_I2S_CLKCFG_SETUP:  
             cfg_data_o = {  r_master_sel_num,
                             r_master_sel_ext,

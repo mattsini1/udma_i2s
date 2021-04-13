@@ -162,6 +162,12 @@ module udma_i2s_top
     logic                      s_sel_slave_num;
     logic                      s_sel_slave_ext;
 
+    logic                      reset_tx;
+    logic                      reset_rx;
+
+    assign reset_tx = rstn_i==1'b0 ? rstn_i : cfg_tx_clr_o? 1'b0 : rstn_i;
+    assign reset_rx = rstn_i==1'b0 ? rstn_i : cfg_rx_clr_o? 1'b0 : rstn_i;
+
     udma_i2s_reg_if #(
         .L2_AWIDTH_NOAL(L2_AWIDTH_NOAL),
         .TRANS_SIZE(TRANS_SIZE)
@@ -253,8 +259,8 @@ module udma_i2s_top
       .BUFFER_DEPTH(2)
       ) u_fifo (
         .clk_i   ( sys_clk_i       ),
-        .rstn_i  ( rstn_i          ),
-        .clr_i   ( 1'b0            ),
+        .rstn_i  ( reset_tx        ),
+        .clr_i   ( cfg_tx_clr_o    ),
         .data_o  ( s_data_tx       ),
         .valid_o ( s_data_tx_valid ),
         .ready_i ( s_data_tx_ready ),
@@ -268,12 +274,12 @@ module udma_i2s_top
     udma_dc_fifo #(32,4) u_dc_fifo_tx
     (
         .src_clk_i    ( sys_clk_i          ),  
-        .src_rstn_i   ( rstn_i             ),  
+        .src_rstn_i   ( reset_tx             ),  
         .src_data_i   ( s_data_tx          ),
         .src_valid_i  ( s_data_tx_valid    ),
         .src_ready_o  ( s_data_tx_ready    ),
         .dst_clk_i    ( s_i2s_master_clk   ),
-        .dst_rstn_i   ( rstn_i             ),
+        .dst_rstn_i   ( reset_tx             ),
         .dst_data_o   ( s_data_tx_dc       ),
         .dst_valid_o  ( s_data_tx_dc_valid ),
         .dst_ready_i  ( s_data_tx_dc_ready )
@@ -282,12 +288,12 @@ module udma_i2s_top
     udma_dc_fifo #(32,4) u_dc_fifo_rx
     (
         .src_clk_i    ( s_i2s_slave_clk    ),  
-        .src_rstn_i   ( rstn_i             ),  
+        .src_rstn_i   ( reset_rx             ),  
         .src_data_i   ( s_data_rx_dc       ),
         .src_valid_i  ( s_data_rx_dc_valid ),
         .src_ready_o  ( s_data_rx_dc_ready ),
         .dst_clk_i    ( sys_clk_i          ),
-        .dst_rstn_i   ( rstn_i             ),
+        .dst_rstn_i   ( reset_rx             ),
         .dst_data_o   ( data_rx_o          ),
         .dst_valid_o  ( data_rx_valid_o    ),
         .dst_ready_i  ( data_rx_ready_i    )

@@ -34,6 +34,7 @@ module i2s_rx_dsp_channel (
     logic [8:0]  r_count_offset;
 
     logic [4:0]  r_count_bit;
+    logic [4:0]  r_count_word;
     
     logic        start;
 
@@ -46,7 +47,7 @@ module i2s_rx_dsp_channel (
 
     assign fifo_data_o = r_ch0_valid ? r_shiftreg_ch0_shadow : (r_ch1_valid ? r_shiftreg_ch1_shadow : 'h0);
     
-    assign fifo_data_valid_o = r_ch0_valid | r_ch1_valid;
+    assign fifo_data_valid_o = (next_state==IDLE | fifo_data_ready_i==1'b0 | (cfg_rx_continuous_i==1'b0 & r_count_word==(cfg_num_word_i+2))) ?  'h0: r_ch0_valid | r_ch1_valid;
     
     //assign fifo_err_o = (r_ch0_valid | r_ch1_valid) & ~fifo_data_ready_i & s_word_done;
 
@@ -75,7 +76,8 @@ module i2s_rx_dsp_channel (
             
             r_shiftreg_ch0_shadow <=  'h0;
             r_shiftreg_ch1_shadow <=  'h0;
-                        
+            
+            r_count_word <='h0;        
             r_count_bit<='h0;
             r_count_offset<='h0;
 
@@ -121,7 +123,10 @@ module i2s_rx_dsp_channel (
 	                    
 	               if (r_count_bit+1 == cfg_num_bits_i) begin
 	                  
-			          //Here i'm reading the last bit from generic dsp peripheral  
+			          //Here i'm reading the last bit from generic dsp peripheral 
+
+			          if (cfg_rx_continuous_i==1'b0 & r_count_word<=cfg_num_word_i+1)
+			          	r_count_word <=r_count_word+1; 
 			 
 	                  if (cfg_lsb_first_i==1'b0) begin
                              r_shiftreg_ch0_shadow [31:0] <= {r_shiftreg_ch0[30:0],i2s_ch0_i};
@@ -230,7 +235,7 @@ module i2s_rx_dsp_channel (
  // it is used to sample data from sd lines only on negedge
     always_ff  @(negedge sck_i)
     begin
-        if(next_state!=OFFSET & cfg_slave_dsp_mode_i==1'b1) begin
+        if(next_state!=OFFSET & next_state!=IDLE & cfg_slave_dsp_mode_i==1'b1) begin
 	  
 	          /*  DSP FOR STANDARD CODEC DSP   
 	
@@ -268,7 +273,10 @@ module i2s_rx_dsp_channel (
 	        end else begin
 	                    
 	            if (r_count_bit+1 == cfg_num_bits_i) begin
-	                          
+	                
+	            	if (cfg_rx_continuous_i==1'b0 & r_count_word<=cfg_num_word_i+1)
+			          	r_count_word <=r_count_word+1; 
+
 	                if (cfg_lsb_first_i==1'b0) begin
 	                             
 	                   //MSB FIRST - LAST BIT
@@ -375,6 +383,10 @@ module i2s_rx_dsp_channel (
                 r_count_offset <= r_count_offset+1;         
             	state <= next_state;
             end
+
+            if (next_state==IDLE) begin
+		        state <= IDLE;	                            
+        	end
         end 
     end
 
@@ -414,13 +426,19 @@ module i2s_rx_dsp_channel (
 
         OFFSET:
              begin                          
-                if(r_count_offset==cfg_slave_dsp_offset_i) begin
-                    next_state=RUN;
-                    start=1'b1;
-                end else begin 
-                   next_state=OFFSET;
-                   start=1'b0;
-                 end          
+                if(cfg_en_i==1'b0) begin
+                  next_state= IDLE; 
+                  start=1'b0;
+                  set_counter=1'b0;             
+               	end else begin
+	                if(r_count_offset==cfg_slave_dsp_offset_i) begin
+	                    next_state=RUN;
+	                    start=1'b1;
+	                end else begin 
+	                   next_state=OFFSET;
+	                   start=1'b0;
+	                end    
+                end      
              end
 
 
@@ -429,9 +447,11 @@ module i2s_rx_dsp_channel (
                
                start=1'b0;
 
-               if(cfg_en_i==1'b0) 
-                  next_state= IDLE;              
-               else begin
+               if(cfg_en_i==1'b0) begin
+                  next_state= IDLE;
+                  start=1'b0;
+                  set_counter=1'b0;              
+               	end else begin
                   
                   //SAMPLE NUM_BITS
                   

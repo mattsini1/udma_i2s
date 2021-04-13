@@ -77,80 +77,97 @@ module i2s_tx_dsp_channel (
             ST_START:
             begin
                 set_offset=1'b0;
-                if(fifo_data_valid_i == 1'b1)
-                begin
-                    data_ready    = 1'b1;
-                    s_sample_sr0   = 1'b1;
-                    s_shiftreg_ch0 = fifo_data_i;
-                    next_state = ST_SAMPLE;
-                end else begin
-                    data_ready    = 1'b0;
-                    s_sample_sr0   = 1'b0;
-                    next_state = ST_START;
+                
+                if(cfg_en_i==1'b0) 
+                  next_state= ST_START;              
+                else begin
+                    if(fifo_data_valid_i == 1'b1)
+                    begin
+                        data_ready    = 1'b1;
+                        s_sample_sr0   = 1'b1;
+                        s_shiftreg_ch0 = fifo_data_i;
+                        next_state = ST_SAMPLE;
+                    end else begin
+                        data_ready    = 1'b0;
+                        s_sample_sr0   = 1'b0;
+                        next_state = ST_START;
+                    end
                 end
             end
             
             ST_SAMPLE:
             begin
-
-                if(fifo_data_valid_i== 1'b1)
-                begin
-                    data_ready    = 1'b1;
-                    s_sample_sr1   = 1'b1;
-                    s_shiftreg_ch1 = fifo_data_i;
-                    next_state = ST_WAIT;
-                end else begin
-                    data_ready    = 1'b0;
-                    s_sample_sr1   = 1'b0;
-                    next_state = ST_SAMPLE;
+                if(cfg_en_i==1'b0) 
+                  next_state= ST_START;              
+                else begin
+                    if(fifo_data_valid_i== 1'b1)
+                    begin
+                        data_ready    = 1'b1;
+                        s_sample_sr1   = 1'b1;
+                        s_shiftreg_ch1 = fifo_data_i;
+                        next_state = ST_WAIT;
+                    end else begin
+                        data_ready    = 1'b0;
+                        s_sample_sr1   = 1'b0;
+                        next_state = ST_SAMPLE;
+                    end
                 end
             end
             
             ST_WAIT:
             begin
-                
-                if(i2s_ws_i== 1'b1)
-                   next_state = ST_RUNNING;
-                if(cfg_master_dsp_offset_i!=9'b0)
-                   set_offset=1'b1;
-                else
-                   set_offset=1'b0;
+                if(cfg_en_i==1'b0) 
+                  next_state= ST_START;              
+                else begin
+                    if(i2s_ws_i== 1'b1)
+                       next_state = ST_RUNNING;
+                    if(cfg_master_dsp_offset_i!=9'b0)
+                       set_offset=1'b1;
+                    else
+                       set_offset=1'b0;
+               end
             end
             
             ST_RUNNING:
             begin
                 s_sample_sr0 = 1'b1;
                 s_sample_sr1 = cfg_2ch_i;
-                //set_offset=1'b1;
-                if(check_offset==1'b0)  begin
-                    //set_offset=1'b0;
+                
+                if(cfg_en_i==1'b0) 
+                  next_state= ST_START;              
+                else begin
 
-                    if(s_word_done_pre== 1'b1)
-                    begin
-                        if(cfg_2ch_i== 1'b1)
+                    //set_offset=1'b1;
+                    if(check_offset==1'b0)  begin
+                        //set_offset=1'b0;
+
+                        if(s_word_done_pre== 1'b1)
                         begin
-                            data_ready    = 1'b1;
-                            if(fifo_data_valid_i == 1'b1)
-                               s_shiftreg_shadow = fifo_data_i;
-                            s_sample_swd      = 1'b1;
-                        end else begin
-                            data_ready    = 1'b0;
-                            s_sample_swd      = 1'b0;
+                            if(cfg_2ch_i== 1'b1)
+                            begin
+                                data_ready    = 1'b1;
+                                if(fifo_data_valid_i == 1'b1)
+                                   s_shiftreg_shadow = fifo_data_i;
+                                s_sample_swd      = 1'b1;
+                            end else begin
+                                data_ready    = 1'b0;
+                                s_sample_swd      = 1'b0;
+                            end
                         end
-                    end
-                    
-                    if(s_word_done== 1'b1)
-                    begin
-                        data_ready = 1'b1;                    
-                        if(cfg_2ch_i== 1'b1)
-                            s_shiftreg_ch0 = r_shiftreg_shadow; 
-                        else
-                            s_shiftreg_ch0 = r_shiftreg_ch1;
-                        s_sample_sr1 = 1'b1;
-                        if(fifo_data_valid_i == 1'b1)
-                           s_shiftreg_ch1 = fifo_data_i; 
+                        
+                        if(s_word_done== 1'b1)
+                        begin
+                            data_ready = 1'b1;                    
+                            if(cfg_2ch_i== 1'b1)
+                                s_shiftreg_ch0 = r_shiftreg_shadow; 
+                            else
+                                s_shiftreg_ch0 = r_shiftreg_ch1;
+                            s_sample_sr1 = 1'b1;
+                            if(fifo_data_valid_i == 1'b1)
+                               s_shiftreg_ch1 = fifo_data_i; 
+                        end 
                     end 
-                end 
+                end
             end
         endcase // state
     end
@@ -175,13 +192,18 @@ module i2s_tx_dsp_channel (
     //DSP_MODE=0
     always_ff  @(negedge sck_i, negedge rstn_i)
     begin       
-        if (cfg_master_dsp_mode_i == 1'b0) begin
-            if (next_state==ST_WAIT)
-                master_ready_to_send <= 1'b1;
-            else
-                master_ready_to_send <= master_ready_to_send;
-            state <= next_state;
-        end       
+        if (cfg_en_i== 1'b0) begin
+            state <= ST_START;
+            master_ready_to_send <= 1'b0;
+        end else begin
+            if (cfg_master_dsp_mode_i == 1'b0) begin
+                if (next_state==ST_WAIT)
+                    master_ready_to_send <= 1'b1;
+                else
+                    master_ready_to_send <= master_ready_to_send;
+                state <= next_state;
+            end
+        end      
     end
 
     //DSP_MODE=1
@@ -216,7 +238,7 @@ module i2s_tx_dsp_channel (
     end
 
     //DSP_MODE=0
-    /*always_ff  @(negedge sck_i, negedge rstn_i)
+    always_ff  @(negedge sck_i, negedge rstn_i)
     begin    
         if (cfg_master_dsp_mode_i == 1'b0) begin
              if(s_sample_sr0==1'b1)
@@ -235,7 +257,7 @@ module i2s_tx_dsp_channel (
                 r_shiftreg_shadow  <= r_shiftreg_shadow;
         end
        
-    end*/
+    end
 
     //DSP_MODE=1
     always_ff  @(posedge sck_i, negedge rstn_i)

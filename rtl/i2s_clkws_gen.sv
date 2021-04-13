@@ -72,7 +72,6 @@ module i2s_clkws_gen (
    logic                   s_clk_slave;
 
    logic                   s_sync_ws_slv_en;
-   logic                   s_sync_ws_dsp_en;
    
    logic                   s_ws_int_master;
    logic                   s_ws_int_slave;
@@ -185,6 +184,7 @@ module i2s_clkws_gen (
    assign s_clk_int_slave  = sel_slave_num_i  ? s_clk_gen_1      : s_clk_gen_0;
    assign s_clk_ext_master = sel_master_num_i ? pad_slave_sck_i  : pad_master_sck_i;
    assign s_clk_ext_slave  = sel_slave_num_i  ? pad_slave_sck_i  : pad_master_sck_i;
+  
    assign s_clk_master     = sel_master_ext_i ? s_clk_ext_master : s_clk_int_master;
    assign s_clk_slave      = sel_slave_ext_i  ? s_clk_ext_slave  : s_clk_int_slave;
 `endif
@@ -241,18 +241,18 @@ module i2s_clkws_gen (
 
    pulp_sync #(2) i_master_dsp_en_sync
      (
-      .clk_i(s_clk_slave),
+      .clk_i(s_clk_master),
       .rstn_i(rstn_i),
       .serial_i(s_sync_ws_dsp_master_en),
       .serial_o(s_master_ws_gen_dsp_en)
       );
-
+  
 
    i2s_ws_gen i_ws_gen_0
      (
       .sck_i           ( s_clk_master       ),
       .rstn_i          ( rstn_i             ),
-      .cfg_ws_en_i     ( s_ws_gen_0_en      ),
+      .cfg_ws_en_i     (  s_ws_gen_0_en     ), // s_sync_ws_mst_en
       .ws_o            ( s_ws_int_0         ),
       .cfg_data_size_i ( cfg_word_size_0_i  ),
       .cfg_word_num_i  ( cfg_word_num_0_i   )
@@ -262,7 +262,7 @@ module i2s_clkws_gen (
      (
       .sck_i           ( s_clk_slave        ),
       .rstn_i          ( rstn_i             ),
-      .cfg_ws_en_i     ( s_ws_gen_1_en      ),
+      .cfg_ws_en_i     ( s_ws_gen_1_en       ), //s_sync_ws_slv_en
       .ws_o            ( s_ws_int_1         ),
       .cfg_data_size_i ( cfg_word_size_1_i  ),
       .cfg_word_num_i  ( cfg_word_num_1_i   )
@@ -272,7 +272,7 @@ module i2s_clkws_gen (
    i2s_dsp_ws_gen i_ws_dsp_slave_gen(
      .sck_i(s_clk_slave),
      .rstn_i(rstn_i),
-     .cfg_ws_en_i(s_slave_ws_gen_dsp_en),
+     .cfg_ws_en_i( s_sync_ws_dsp_slave_en  ), //   s_slave_ws_gen_dsp_en
   
      .cfg_num_bits_i(cfg_word_size_1_i),
      .cfg_num_words_i(cfg_word_num_1_i),
@@ -286,7 +286,7 @@ module i2s_clkws_gen (
    i2s_dsp_ws_gen i_ws_dsp_master_gen(
      .sck_i(s_clk_master),
      .rstn_i(rstn_i),
-     .cfg_ws_en_i(s_master_ws_gen_dsp_en),
+     .cfg_ws_en_i( s_sync_ws_dsp_master_en   ), //s_master_ws_gen_dsp_en
   
      .cfg_num_bits_i(cfg_word_size_0_i),
      .cfg_num_words_i(cfg_word_num_0_i),
