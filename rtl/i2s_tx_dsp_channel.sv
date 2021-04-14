@@ -262,7 +262,7 @@ module i2s_tx_dsp_channel (
     //DSP_MODE=1
     always_ff  @(posedge sck_i, negedge rstn_i)
     begin
-        if (rstn_i == 1'b0)
+        if (rstn_i == 1'b0 | cfg_en_i== 1'b0)
         begin
             r_count_bit <= 'h0;
             r_count_offset <= 'h0;
@@ -356,80 +356,94 @@ module i2s_tx_dsp_channel (
     //DSP_MODE=0
     always_ff  @(negedge sck_i, negedge rstn_i)
     begin 
-       if (cfg_master_dsp_mode_i == 1'b0) begin
-                if( (next_state== ST_RUNNING & i2s_ws_i== 1'b1 & cfg_master_dsp_offset_i!=9'b0 & check_offset==1'b1) | en_offset==1'b1) begin
-                    //count offset
-                    if (r_count_offset+1==cfg_master_dsp_offset_i) begin
-                        clear_offset <= 1'b1;
-                        en_offset <= 1'b0;
+        if (cfg_en_i== 1'b0)
+        begin
+            r_count_bit <= 'h0;
+            r_count_offset <= 'h0;
+            clear_offset <= 1'b0;
+            en_offset <= 1'b0;
 
-                        if (cfg_lsb_first_i==1'b0) begin
-                          r_count_bit <= cfg_num_bits_i;
+            i2s_ch0_o <= 'h0;
+            i2s_ch1_o <= 'h0;
+        end
+        else
+        begin 
 
-                          i2s_ch0_o <= r_shiftreg_ch0[cfg_num_bits_i];
-                          i2s_ch1_o <= r_shiftreg_ch1[cfg_num_bits_i];
-                        
+           if (cfg_master_dsp_mode_i == 1'b0) begin
+                    if( (next_state== ST_RUNNING & i2s_ws_i== 1'b1 & cfg_master_dsp_offset_i!=9'b0 & check_offset==1'b1) | en_offset==1'b1) begin
+                        //count offset
+                        if (r_count_offset+1==cfg_master_dsp_offset_i) begin
+                            clear_offset <= 1'b1;
+                            en_offset <= 1'b0;
+
+                            if (cfg_lsb_first_i==1'b0) begin
+                              r_count_bit <= cfg_num_bits_i;
+
+                              i2s_ch0_o <= r_shiftreg_ch0[cfg_num_bits_i];
+                              i2s_ch1_o <= r_shiftreg_ch1[cfg_num_bits_i];
+                            
+                            end else begin
+                              r_count_bit <= 'h0;
+
+                              i2s_ch0_o <= r_shiftreg_ch0[0];
+                              i2s_ch1_o <= r_shiftreg_ch1[0];
+                            end
                         end else begin
-                          r_count_bit <= 'h0;
+                            r_count_offset <= r_count_offset + 1;
+                            en_offset <= 1'b1;
+                            clear_offset <= 1'b0;
 
-                          i2s_ch0_o <= r_shiftreg_ch0[0];
-                          i2s_ch1_o <= r_shiftreg_ch1[0];
+                            i2s_ch0_o <= 'h0;
+                            i2s_ch1_o <= 'h0;
                         end
                     end else begin
-                        r_count_offset <= r_count_offset + 1;
-                        en_offset <= 1'b1;
-                        clear_offset <= 1'b0;
+                        //count num bits
+                        clear_offset <= clear_offset;
+                        
+                        if (next_state== ST_RUNNING & i2s_ws_i== 1'b1 | state == ST_RUNNING) begin
+                           
+                           if (cfg_lsb_first_i==1'b0) begin
 
-                        i2s_ch0_o <= 'h0;
-                        i2s_ch1_o <= 'h0;
-                    end
-                end else begin
-                    //count num bits
-                    clear_offset <= clear_offset;
-                    
-                    if (next_state== ST_RUNNING & i2s_ws_i== 1'b1 | state == ST_RUNNING) begin
-                       
-                       if (cfg_lsb_first_i==1'b0) begin
+                              if (r_count_bit=='h0) begin
+                                 r_count_bit <= cfg_num_bits_i;
+                                 
+                                 i2s_ch0_o <= r_shiftreg_ch0[cfg_num_bits_i];
+                                 i2s_ch1_o <= r_shiftreg_ch1[cfg_num_bits_i];
 
-                          if (r_count_bit=='h0) begin
-                             r_count_bit <= cfg_num_bits_i;
-                             
-                             i2s_ch0_o <= r_shiftreg_ch0[cfg_num_bits_i];
-                             i2s_ch1_o <= r_shiftreg_ch1[cfg_num_bits_i];
+                              end else begin
+                                 r_count_bit <= r_count_bit - 1;
 
-                          end else begin
-                             r_count_bit <= r_count_bit - 1;
+                                 i2s_ch0_o <= r_shiftreg_ch0[r_count_bit - 1];
+                                 i2s_ch1_o <= r_shiftreg_ch1[r_count_bit - 1];
+                              end
+                           end else begin
+                              
+                              if (r_count_bit==cfg_num_bits_i) begin
+                                 r_count_bit <= 'h0;
+                                 i2s_ch0_o <= r_shiftreg_ch0[0];
+                                 i2s_ch1_o <= r_shiftreg_ch1[0];
 
-                             i2s_ch0_o <= r_shiftreg_ch0[r_count_bit - 1];
-                             i2s_ch1_o <= r_shiftreg_ch1[r_count_bit - 1];
-                          end
-                       end else begin
-                          
-                          if (r_count_bit==cfg_num_bits_i) begin
-                             r_count_bit <= 'h0;
-                             i2s_ch0_o <= r_shiftreg_ch0[0];
-                             i2s_ch1_o <= r_shiftreg_ch1[0];
+                              end else begin
+                                r_count_bit <= r_count_bit + 1;
+                                
+                                i2s_ch0_o <= r_shiftreg_ch0[r_count_bit + 1];
+                                i2s_ch1_o <= r_shiftreg_ch1[r_count_bit + 1];
 
-                          end else begin
-                            r_count_bit <= r_count_bit + 1;
-                            
-                            i2s_ch0_o <= r_shiftreg_ch0[r_count_bit + 1];
-                            i2s_ch1_o <= r_shiftreg_ch1[r_count_bit + 1];
+                              end
+                           end
 
-                          end
-                       end
-
-                    end else begin
-                       //set counter in state != run
-                       if (cfg_lsb_first_i==1'b0) begin
-                          r_count_bit <= cfg_num_bits_i;
-                       end else begin
-                          r_count_bit <= 'h0;
-                       end
-                       
-                    end
-                end        
-            end
+                        end else begin
+                           //set counter in state != run
+                           if (cfg_lsb_first_i==1'b0) begin
+                              r_count_bit <= cfg_num_bits_i;
+                           end else begin
+                              r_count_bit <= 'h0;
+                           end
+                           
+                        end
+                    end        
+                end
+        end
     end
 endmodule
 
