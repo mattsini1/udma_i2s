@@ -206,8 +206,8 @@ module i2s_tx_dsp_channel (
         else
           if (next_state==WAIT)
             master_ready_to_send <= 1'b1;
-        else
-          master_ready_to_send <= master_ready_to_send;
+          else
+            master_ready_to_send <= master_ready_to_send;
 
         state <= next_state;
 
@@ -257,7 +257,7 @@ module i2s_tx_dsp_channel (
       if (next_state== START) begin
 
         s_count_bit = 'h0;
-        s_count_offset ='h0;
+        s_count_offset = 'h0;
 
         s_en_offset = 1'b0;
         s_clear_offset  = 1'b0;

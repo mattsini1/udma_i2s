@@ -50,7 +50,7 @@ module i2s_dsp_ws_gen (
       if (rstn_i == 1'b0) begin
         count <= 'h0;
         state_p <= IDLE;
-      end else
+      end else begin
      
         if(set==1'b1 || next_state==IDLE)
           count <= 'h0;
@@ -59,6 +59,7 @@ module i2s_dsp_ws_gen (
         
         if(cfg_dsp_mode_i==1'b1)
           state_p <= next_state; 
+      end
     end
 
   always_comb
