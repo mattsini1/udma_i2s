@@ -20,11 +20,11 @@ module i2s_tx_dsp_channel (
 );
 
 
-  logic [31:0] r_shiftreg_ch0, r_shiftreg_ch0_n;
-  logic [31:0] r_shiftreg_ch1, r_shiftreg_ch1_n;
+  logic [31:0] r_shiftreg_ch0;
+  logic [31:0] r_shiftreg_ch1;
   logic [31:0] s_shiftreg_ch0;
   logic [31:0] s_shiftreg_ch1;
-  logic [31:0] r_shiftreg_shadow, r_shiftreg_shadow_n;
+  logic [31:0] r_shiftreg_shadow;
   logic [31:0] s_shiftreg_shadow;
 
   logic        s_data_ready;
