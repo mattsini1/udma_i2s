@@ -38,16 +38,40 @@ module i2s_rx_dsp_channel (
 	logic        r_ch0_valid, s_ch0_valid;
 	logic        r_ch1_valid, s_ch1_valid;
 
-	enum {IDLE,OFFSET,RUN} state, next_state;
+	logic        sck_inverter, sck_r, sck_off;
+	logic        sck_sel;
 
+	enum {IDLE,OFFSET,RUN} state, state_off, state_r, next_state;
 
 	assign fifo_data_o = r_ch0_valid ? r_shiftreg_ch0_shadow : (r_ch1_valid ? r_shiftreg_ch1_shadow : 'h0);
 
 	assign fifo_data_valid_o = (next_state==IDLE | fifo_data_ready_i==1'b0 | (cfg_rx_continuous_i==1'b0 & r_count_word==(cfg_num_word_i+2))) ?  'h0: r_ch0_valid | r_ch1_valid;
 
-	//assign fifo_err_o = (r_ch0_valid | r_ch1_valid) & ~fifo_data_ready_i & s_word_done;
+	assign state = (state_off==OFFSET)? state_off : state_r;
 
+	pulp_clock_inverter clk_inv_i2s_rx_dsp
+    (
+      .clk_i(sck_i),
+      .clk_o(sck_inverter)
+    );
 
+    pulp_clock_mux2 clk_mux_i2s_rx_dsp
+    (
+      .clk0_i(sck_i),
+      .clk1_i(sck_inverter),
+      .clk_sel_i(cfg_slave_dsp_mode_i),
+      .clk_o(sck_r)
+    );
+
+	pulp_clock_mux2 clk_mux_offset_i2s_rx_dsp
+    (
+      .clk0_i(sck_i),
+      .clk1_i(sck_inverter),
+      .clk_sel_i(~cfg_slave_dsp_mode_i),
+      .clk_o(sck_off)
+    );
+
+	
 	always_comb
 		begin
 			s_shiftreg_ch0  =  r_shiftreg_ch0;
@@ -98,7 +122,7 @@ module i2s_rx_dsp_channel (
 		end
 
 
-	always_ff  @(posedge sck_i, negedge rstn_i)
+	always_ff  @(posedge sck_r, negedge rstn_i)
 		begin
 			if (rstn_i == 1'b0 ) begin
 
@@ -197,7 +221,7 @@ module i2s_rx_dsp_channel (
 			end
 		end
 
-	always_ff  @(posedge sck_i, negedge rstn_i)
+	always_ff  @(posedge sck_r, negedge rstn_i)
 		begin
 			if (rstn_i == 1'b0 ) begin
 
@@ -224,7 +248,6 @@ module i2s_rx_dsp_channel (
 				end
 			end
 		end
-
 
 	always_comb
 		begin
@@ -254,10 +277,9 @@ module i2s_rx_dsp_channel (
 			end
 		end
 
-	always_ff  @(posedge sck_i, negedge rstn_i)
+	always_ff  @(posedge sck_r, negedge rstn_i)
 		begin
 			if (rstn_i == 1'b0 ) begin
-
 				r_count_word <='h0;
 				r_count_bit<='h0;
 			end else begin
@@ -340,25 +362,28 @@ module i2s_rx_dsp_channel (
 			endcase
 		end
 
-		always_ff  @(posedge sck_i, negedge rstn_i)
+		always_ff  @(posedge sck_r, negedge rstn_i)
 		begin
 			if (rstn_i == 1'b0 ) begin
-				state <=  IDLE;
+				state_r <=  IDLE;
 			end else 			
 				if (next_state!=OFFSET)
-				state<=next_state;			
+					state_r<=next_state;			
 		end
 
-		always_ff  @(negedge sck_i, negedge rstn_i)
+		always_ff  @(posedge sck_off, negedge rstn_i)
 		begin
 			if (rstn_i == 1'b0 ) begin
 				r_count_offset<= 'h0;
+				state_off <=  IDLE;
 			end else 			
 				if (next_state==OFFSET) begin
-					state<=next_state;
+					state_off<=next_state;
 					r_count_offset<= s_count_offset;
-				end	else
-					r_count_offset<= 'h0;	
+				end	else begin
+					r_count_offset<= 'h0;
+					state_off <=  IDLE;	
+				end
 		end
 
 endmodule
