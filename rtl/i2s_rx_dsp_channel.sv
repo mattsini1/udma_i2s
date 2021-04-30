@@ -39,7 +39,6 @@ module i2s_rx_dsp_channel (
 	logic        r_ch1_valid, s_ch1_valid;
 
 	logic        sck_inverter, sck_r, sck_off;
-	logic        sck_sel;
 
 	enum {IDLE,OFFSET,RUN} state, state_off, state_r, next_state;
 
@@ -70,7 +69,6 @@ module i2s_rx_dsp_channel (
       .clk_sel_i(~cfg_slave_dsp_mode_i),
       .clk_o(sck_off)
     );
-
 	
 	always_comb
 		begin

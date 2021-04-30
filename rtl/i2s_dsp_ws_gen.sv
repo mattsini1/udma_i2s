@@ -23,12 +23,19 @@ module i2s_dsp_ws_gen (
 */
   logic [15:0] count;
   logic set;
+  logic        sck_inverter;
+
+  pulp_clock_inverter clk_inv_i2s_ws_dsp
+    (
+      .clk_i(sck_i),
+      .clk_o(sck_inverter)
+    );
 
   assign limit = ((cfg_num_bits_i+1) * (cfg_num_words_i+1)-1);
   
   assign state= cfg_dsp_mode_i? state_p: state_n;
   
-  always_ff@ (negedge sck_i, negedge rstn_i)
+  always_ff@ (posedge sck_inverter, negedge rstn_i)
     begin
       if (rstn_i == 1'b0)
         state_n <= IDLE;
