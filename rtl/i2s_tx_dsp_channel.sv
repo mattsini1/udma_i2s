@@ -100,12 +100,14 @@ module i2s_tx_dsp_channel (
                 s_shiftreg_ch0 = fifo_data_i;
                 next_state = SAMPLE;
               end else
-            next_state = START;
+                next_state = START;
           end
         end
 
       SAMPLE:
         begin
+          set_offset=1'b0;
+
           if(cfg_en_i==1'b0)
             next_state= START;
           else begin
@@ -116,17 +118,23 @@ module i2s_tx_dsp_channel (
                 s_shiftreg_ch1 = fifo_data_i;
                 next_state = WAIT;
               end else
-            next_state = SAMPLE;
+                next_state = SAMPLE;
           end
         end
 
       WAIT:
         begin
+          set_offset=1'b0;
+
           if(cfg_en_i==1'b0)
             next_state= START;
           else begin
+            
             if(i2s_ws_i== 1'b1)
               next_state = RUN;
+            else
+              next_state = WAIT;
+
             if(cfg_master_dsp_offset_i!=9'b0)
               set_offset=1'b1;
             else
@@ -137,6 +145,7 @@ module i2s_tx_dsp_channel (
       RUN:
         begin
           s_sample_sr0 = 1'b1;
+          set_offset=1'b0;
 
           if(cfg_en_i==1'b0)
 

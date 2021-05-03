@@ -82,7 +82,6 @@ module i2s_dsp_ws_gen (
             else
               begin
                 next_state = IDLE;
-
               end
           end
 
@@ -113,6 +112,7 @@ module i2s_dsp_ws_gen (
             else
               begin
                 next_state = IDLE;
+                ws_o=1'b0;
               end
           end
 
@@ -133,7 +133,7 @@ module i2s_dsp_ws_gen (
                     next_state = PULSE;
                 end
               end else
-            next_state = IDLE;
+                next_state = IDLE;
           end
 
       endcase

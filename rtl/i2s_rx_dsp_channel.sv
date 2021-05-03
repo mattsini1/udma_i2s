@@ -296,6 +296,7 @@ module i2s_rx_dsp_channel (
 			case(state)
 				IDLE:
 					begin
+						
 						if(cfg_en_i==1'b0) begin
 							next_state= IDLE;
 							start=1'b0;
@@ -310,7 +311,8 @@ module i2s_rx_dsp_channel (
 								if(i2s_ws_i==1'b1 & cfg_slave_dsp_offset_i!=9'd0) begin
 									next_state=OFFSET;
 									start=1'b0;
-								end
+								end else
+									next_state= IDLE;
 							end
 						end
 					end
@@ -355,6 +357,9 @@ module i2s_rx_dsp_channel (
 
 				default:
 					begin
+						next_state= IDLE;
+						start=1'b0;
+						set_counter=1'b0;
 					end
 
 			endcase
