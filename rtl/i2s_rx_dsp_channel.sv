@@ -290,9 +290,10 @@ module i2s_rx_dsp_channel (
 	always_comb
 		begin
 
+			next_state= IDLE;
 			start=1'b0;
 			set_counter=1'b0;
-
+			
 			case(state)
 				IDLE:
 					begin

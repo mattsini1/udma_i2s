@@ -65,29 +65,27 @@ module i2s_dsp_ws_gen (
   always_comb
     begin
       set=1'b0;
+      ws_o=1'b0;
+      next_state = IDLE;
 
       case(state)
         IDLE:
           begin
-            ws_o=1'b0;
-            set=1'b0;
+            
             if(cfg_ws_en_i==1'b1)
               begin
                 if(cfg_dsp_setup_time_i!= 'd0) begin
                   next_state = WAIT;
                   set=1'b1;
                 end else
-                next_state = PULSE;
+                  next_state = PULSE;
               end
-            else
-              begin
-                next_state = IDLE;
-              end
+            
           end
 
         WAIT:
           begin
-            ws_o=1'b0;
+            
             if(cfg_ws_en_i==1'b1)
               begin
                 if(count<cfg_dsp_setup_time_i)
@@ -97,8 +95,7 @@ module i2s_dsp_ws_gen (
                     next_state = PULSE;
                   end
               end
-            else
-              next_state = IDLE;
+            
           end
 
         PULSE:
@@ -109,16 +106,12 @@ module i2s_dsp_ws_gen (
                 ws_o=1'b1;
                 set=1'b1;
               end
-            else
-              begin
-                next_state = IDLE;
-                ws_o=1'b0;
-              end
+            
           end
 
         PERIOD:
           begin
-            ws_o=1'b0;
+            
             if(cfg_ws_en_i==1'b1)
               begin
                 if (cfg_dsp_mode_i==1'b0 ) begin
@@ -132,8 +125,7 @@ module i2s_dsp_ws_gen (
                   else
                     next_state = PULSE;
                 end
-              end else
-                next_state = IDLE;
+              end 
           end
 
       endcase

@@ -26,6 +26,8 @@ module i2s_tx_dsp_channel (
   logic [31:0] s_shiftreg_ch1;
   logic [31:0] r_shiftreg_shadow;
   logic [31:0] s_shiftreg_shadow;
+  logic [31:0] r_shiftreg_shadow1;
+  logic [31:0] s_shiftreg_shadow1;
 
   logic        s_data_ready;
   logic        s_sample_sr0;
@@ -56,6 +58,8 @@ module i2s_tx_dsp_channel (
 
   assign fifo_data_ready_o = s_data_ready;
 
+
+  assign set_offset = (cfg_master_dsp_offset_i!='h0 )? 1'b1 : 1'b0;
   assign check_offset = set_offset ^ r_clear_offset;
 
 
@@ -78,25 +82,23 @@ module i2s_tx_dsp_channel (
     s_shiftreg_ch0    = r_shiftreg_ch0;
     s_shiftreg_ch1    = r_shiftreg_ch1;
     s_shiftreg_shadow = r_shiftreg_shadow;
+    s_shiftreg_shadow1 = r_shiftreg_shadow1;
 
-    s_sample_sr0 = 1'b0;
-    s_sample_sr1 = 1'b0;
-    s_sample_swd = 1'b0;
     s_data_ready = 1'b0;
+
+    next_state = START;
 
     case(state)
 
       START:
         begin
-          set_offset=1'b0;
-
+          
           if(cfg_en_i==1'b0)
             next_state= START;
           else begin
             if(fifo_data_valid_i == 1'b1)
               begin
                 s_data_ready    = 1'b1;
-                s_sample_sr0   = 1'b1;
                 s_shiftreg_ch0 = fifo_data_i;
                 next_state = SAMPLE;
               end else
@@ -106,7 +108,6 @@ module i2s_tx_dsp_channel (
 
       SAMPLE:
         begin
-          set_offset=1'b0;
 
           if(cfg_en_i==1'b0)
             next_state= START;
@@ -114,7 +115,6 @@ module i2s_tx_dsp_channel (
             if(fifo_data_valid_i== 1'b1)
               begin
                 s_data_ready    = 1'b1;
-                s_sample_sr1   = 1'b1;
                 s_shiftreg_ch1 = fifo_data_i;
                 next_state = WAIT;
               end else
@@ -124,29 +124,22 @@ module i2s_tx_dsp_channel (
 
       WAIT:
         begin
-          set_offset=1'b0;
 
           if(cfg_en_i==1'b0)
             next_state= START;
           else begin
-            
+
             if(i2s_ws_i== 1'b1)
               next_state = RUN;
             else
               next_state = WAIT;
-
-            if(cfg_master_dsp_offset_i!=9'b0)
-              set_offset=1'b1;
-            else
-              set_offset=1'b0;
+            
           end
         end
 
       RUN:
         begin
-          s_sample_sr0 = 1'b1;
-          set_offset=1'b0;
-
+        
           if(cfg_en_i==1'b0)
 
             next_state= START;
@@ -155,44 +148,44 @@ module i2s_tx_dsp_channel (
 
             next_state= RUN;
 
-            if(cfg_master_dsp_offset_i!=9'b0)
-              set_offset=1'b1;
-            else
-              set_offset=1'b0;
-
             if(check_offset==1'b0)  begin
 
-              if (cfg_master_dsp_mode_i==1'b0) begin
-                s_sample_sr1 = 1'b1;
-                if(fifo_data_valid_i == 1'b1)
-                  s_shiftreg_ch1 = fifo_data_i;
-                
-              end else
-                s_sample_sr1 = cfg_2ch_i;
-
               if(s_word_done_pre== 1'b1)begin
-                if(cfg_2ch_i== 1'b1)begin
+                
+                if(cfg_2ch_i== 1'b1) begin
                   s_data_ready    = 1'b1;
-                  s_sample_swd      = 1'b1;
 
                   if(fifo_data_valid_i == 1'b1)
                     s_shiftreg_shadow = fifo_data_i;
+                
+                end 
+              
+              end else begin
+
+                if(s_word_done== 1'b1)begin
+                  
+                  s_data_ready = 1'b1;
+                  
+                  if(cfg_2ch_i== 1'b1)
+                    s_shiftreg_ch0 = r_shiftreg_shadow;
+                  else
+                    s_shiftreg_ch0 = r_shiftreg_ch1;
+
+                  if (cfg_master_dsp_mode_i==1'b1) begin
+                    if(fifo_data_valid_i == 1'b1)
+                      s_shiftreg_ch1 = fifo_data_i;
+                  end
+
+                end else begin
+
+                  if (cfg_master_dsp_mode_i==1'b0) begin               
+                    if(fifo_data_valid_i == 1'b1) begin
+                      s_shiftreg_ch1 = fifo_data_i;
+                    end
+                  end 
+
                 end
-              end
 
-              if(s_word_done== 1'b1)begin
-                s_data_ready = 1'b1;
-                s_sample_sr1 = 1'b1;
-
-                if(cfg_2ch_i== 1'b1)
-                  s_shiftreg_ch0 = r_shiftreg_shadow;
-                else
-                  s_shiftreg_ch0 = r_shiftreg_ch1;
-
-                if (cfg_master_dsp_mode_i==1'b1) begin
-                  if(fifo_data_valid_i == 1'b1)
-                    s_shiftreg_ch1 = fifo_data_i;
-                end
 
               end
 
@@ -223,7 +216,7 @@ module i2s_tx_dsp_channel (
       end
     end
 
-  always_ff  @(posedge sck_i, negedge rstn_i)
+  always_ff  @(posedge sck_r, negedge rstn_i)
     begin
       if (rstn_i == 1'b0)
         begin
@@ -232,23 +225,10 @@ module i2s_tx_dsp_channel (
           r_shiftreg_shadow <= 'h0;
         end
       else
-        begin
-
-          if(s_sample_sr0==1'b1)
-            r_shiftreg_ch0  <= s_shiftreg_ch0;
-          else
-            r_shiftreg_ch0  <= r_shiftreg_ch0;
-
-          if(s_sample_sr1==1'b1)
-            r_shiftreg_ch1  <= s_shiftreg_ch1;
-          else
-            r_shiftreg_ch1  <= r_shiftreg_ch1;
-
-          if(s_sample_swd==1'b1)
-            r_shiftreg_shadow  <= s_shiftreg_shadow;
-          else
-            r_shiftreg_shadow  <= r_shiftreg_shadow;
-
+        begin   
+          r_shiftreg_ch0  <= s_shiftreg_ch0;         
+          r_shiftreg_ch1  <= s_shiftreg_ch1;         
+          r_shiftreg_shadow  <= s_shiftreg_shadow;
         end
     end
 
@@ -260,8 +240,8 @@ module i2s_tx_dsp_channel (
       s_en_offset = r_en_offset;
       s_clear_offset = r_clear_offset;
 
-      i2s_ch0_o = r_shiftreg_ch0[r_count_bit];
-      i2s_ch1_o = r_shiftreg_ch1[r_count_bit];
+      i2s_ch0_o = 1'b0;
+      i2s_ch1_o = 1'b0;
 
       if (next_state== START) begin
 
@@ -275,6 +255,11 @@ module i2s_tx_dsp_channel (
         i2s_ch1_o = 1'b0;
 
       end else begin
+
+        i2s_ch0_o = r_shiftreg_ch0[r_count_bit];
+        
+        if (cfg_2ch_i==1'b1)
+          i2s_ch1_o = r_shiftreg_ch1[r_count_bit];
 
         if((next_state== RUN & i2s_ws_i== 1'b1 & cfg_master_dsp_offset_i!=9'b0 & check_offset==1'b1) | r_en_offset==1'b1) begin
 
