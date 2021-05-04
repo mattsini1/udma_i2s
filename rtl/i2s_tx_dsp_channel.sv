@@ -30,10 +30,7 @@ module i2s_tx_dsp_channel (
   logic [31:0] s_shiftreg_shadow1;
 
   logic        s_data_ready;
-  logic        s_sample_sr0;
-  logic        s_sample_sr1;
-  logic        s_sample_swd;
-
+  
   logic        set_offset;
 
   logic        s_en_offset, r_en_offset;
@@ -156,7 +153,7 @@ module i2s_tx_dsp_channel (
                   s_data_ready    = 1'b1;
 
                   if(fifo_data_valid_i == 1'b1)
-                    s_shiftreg_shadow = fifo_data_i;
+                    s_shiftreg_shadow1 = fifo_data_i;
                 
                 end 
               
@@ -166,21 +163,26 @@ module i2s_tx_dsp_channel (
                   
                   s_data_ready = 1'b1;
                   
-                  if(cfg_2ch_i== 1'b1)
+                  if(cfg_2ch_i== 1'b1) begin
                     s_shiftreg_ch0 = r_shiftreg_shadow;
-                  else
+                    s_shiftreg_ch1 = r_shiftreg_shadow1;
+                  end else begin
                     s_shiftreg_ch0 = r_shiftreg_ch1;
 
-                  if (cfg_master_dsp_mode_i==1'b1) begin
-                    if(fifo_data_valid_i == 1'b1)
-                      s_shiftreg_ch1 = fifo_data_i;
+                    if (cfg_master_dsp_mode_i==1'b1) begin
+                      if(fifo_data_valid_i == 1'b1)
+                        s_shiftreg_ch1 = fifo_data_i;
+                    end
                   end
 
                 end else begin
 
                   if (cfg_master_dsp_mode_i==1'b0) begin               
                     if(fifo_data_valid_i == 1'b1) begin
-                      s_shiftreg_ch1 = fifo_data_i;
+                      if(cfg_2ch_i== 1'b0)
+                        s_shiftreg_ch1 = fifo_data_i;
+                      else
+                        s_shiftreg_shadow = fifo_data_i;
                     end
                   end 
 
@@ -223,12 +225,14 @@ module i2s_tx_dsp_channel (
           r_shiftreg_ch0  <=  'h0;
           r_shiftreg_ch1  <=  'h0;
           r_shiftreg_shadow <= 'h0;
+          r_shiftreg_shadow1 <= 'h0;
         end
       else
         begin   
           r_shiftreg_ch0  <= s_shiftreg_ch0;         
           r_shiftreg_ch1  <= s_shiftreg_ch1;         
           r_shiftreg_shadow  <= s_shiftreg_shadow;
+          r_shiftreg_shadow1  <= s_shiftreg_shadow1;
         end
     end
 
