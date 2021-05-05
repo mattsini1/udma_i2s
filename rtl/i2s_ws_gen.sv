@@ -32,7 +32,7 @@ module i2s_ws_gen
 );
 
     logic  [4:0] r_counter;
-    logic  [2:0] r_word_counter;
+    logic  [3:0] r_word_counter;
 
     //Generate the internal WS signal
     always_ff  @(posedge sck_i, negedge rstn_i)

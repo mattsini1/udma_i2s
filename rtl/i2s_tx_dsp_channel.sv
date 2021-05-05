@@ -184,8 +184,6 @@ module i2s_tx_dsp_channel (
                     if(fifo_data_valid_i == 1'b1)
                       s_shiftreg_ch1 = fifo_data_i;
 
-
-                    //s_shiftreg_ch1 = r_shiftreg_shadow1;
                   end else begin
                     s_shiftreg_ch0 = r_shiftreg_ch1;
 
@@ -201,6 +199,8 @@ module i2s_tx_dsp_channel (
                     if(fifo_data_valid_i == 1'b1) begin
                       if(cfg_2ch_i== 1'b0)
                         s_shiftreg_ch1 = fifo_data_i;
+                      else
+                        s_shiftreg_shadow = fifo_data_i;
                     end
                   end 
 
@@ -236,7 +236,7 @@ module i2s_tx_dsp_channel (
       end
     end
 
-  always_ff  @(posedge sck_i, negedge rstn_i)
+  always_ff  @(posedge sck_r, negedge rstn_i)
     begin
       if (rstn_i == 1'b0)
         begin
