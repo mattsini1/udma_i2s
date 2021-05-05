@@ -48,13 +48,12 @@ module i2s_tx_dsp_channel (
 
   logic        sck_inverter, sck_r;
 
-  enum  {START,SAMPLE,WAIT,RUN} state,next_state;
+  enum  {START,SAMPLE,WAIT,RUN} state, next_state;
 
   assign s_word_done     = cfg_lsb_first_i?  r_count_bit == cfg_num_bits_i  : r_count_bit == 'h0;
-  assign s_word_done_pre = cfg_lsb_first_i?  r_count_bit == cfg_num_bits_i-1 : r_count_bit == 'h1;
+  assign s_word_done_pre = cfg_lsb_first_i?  r_count_bit == cfg_num_bits_i-4 : r_count_bit == 'h4;
 
   assign fifo_data_ready_o = s_data_ready;
-
 
   assign set_offset = (cfg_master_dsp_offset_i!='h0 )? 1'b1 : 1'b0;
   assign check_offset = set_offset ^ r_clear_offset;
@@ -90,9 +89,13 @@ module i2s_tx_dsp_channel (
       START:
         begin
           
-          if(cfg_en_i==1'b0)
+          if(cfg_en_i==1'b0) begin
             next_state= START;
-          else begin
+            s_shiftreg_ch0    = 'h0;
+            s_shiftreg_ch1    = 'h0;
+            s_shiftreg_shadow = 'h0;
+            s_shiftreg_shadow1 = 'h0;
+          end else begin
             if(fifo_data_valid_i == 1'b1)
               begin
                 s_data_ready    = 1'b1;
@@ -106,9 +109,13 @@ module i2s_tx_dsp_channel (
       SAMPLE:
         begin
 
-          if(cfg_en_i==1'b0)
+          if(cfg_en_i==1'b0) begin
             next_state= START;
-          else begin
+            s_shiftreg_ch0    = 'h0;
+            s_shiftreg_ch1    = 'h0;
+            s_shiftreg_shadow = 'h0;
+            s_shiftreg_shadow1 = 'h0;
+          end else begin
             if(fifo_data_valid_i== 1'b1)
               begin
                 s_data_ready    = 1'b1;
@@ -122,9 +129,13 @@ module i2s_tx_dsp_channel (
       WAIT:
         begin
 
-          if(cfg_en_i==1'b0)
+          if(cfg_en_i==1'b0) begin
             next_state= START;
-          else begin
+            s_shiftreg_ch0    = 'h0;
+            s_shiftreg_ch1    = 'h0;
+            s_shiftreg_shadow = 'h0;
+            s_shiftreg_shadow1 = 'h0;
+          end else begin
 
             if(i2s_ws_i== 1'b1)
               next_state = RUN;
@@ -137,11 +148,15 @@ module i2s_tx_dsp_channel (
       RUN:
         begin
         
-          if(cfg_en_i==1'b0)
+          if(cfg_en_i==1'b0) begin
 
             next_state= START;
+            s_shiftreg_ch0    = 'h0;
+            s_shiftreg_ch1    = 'h0;
+            s_shiftreg_shadow = 'h0;
+            s_shiftreg_shadow1 = 'h0;
 
-          else begin
+          end else begin
 
             next_state= RUN;
 
@@ -153,7 +168,7 @@ module i2s_tx_dsp_channel (
                   s_data_ready    = 1'b1;
 
                   if(fifo_data_valid_i == 1'b1)
-                    s_shiftreg_shadow1 = fifo_data_i;
+                    s_shiftreg_shadow = fifo_data_i;
                 
                 end 
               
@@ -165,7 +180,12 @@ module i2s_tx_dsp_channel (
                   
                   if(cfg_2ch_i== 1'b1) begin
                     s_shiftreg_ch0 = r_shiftreg_shadow;
-                    s_shiftreg_ch1 = r_shiftreg_shadow1;
+                    
+                    if(fifo_data_valid_i == 1'b1)
+                      s_shiftreg_ch1 = fifo_data_i;
+
+
+                    //s_shiftreg_ch1 = r_shiftreg_shadow1;
                   end else begin
                     s_shiftreg_ch0 = r_shiftreg_ch1;
 
@@ -181,8 +201,6 @@ module i2s_tx_dsp_channel (
                     if(fifo_data_valid_i == 1'b1) begin
                       if(cfg_2ch_i== 1'b0)
                         s_shiftreg_ch1 = fifo_data_i;
-                      else
-                        s_shiftreg_shadow = fifo_data_i;
                     end
                   end 
 
@@ -218,7 +236,7 @@ module i2s_tx_dsp_channel (
       end
     end
 
-  always_ff  @(posedge sck_r, negedge rstn_i)
+  always_ff  @(posedge sck_i, negedge rstn_i)
     begin
       if (rstn_i == 1'b0)
         begin

@@ -270,8 +270,13 @@ module i2s_rx_dsp_channel (
 				else
 					s_count_bit = r_count_bit+1;
 
-				if (cfg_rx_continuous_i==1'b0 & r_count_bit+1 == cfg_num_bits_i & r_count_word<=cfg_num_word_i+1)
-					s_count_word = r_count_word+1;
+				if (cfg_rx_continuous_i==1'b0 & r_count_bit+1 == cfg_num_bits_i & r_count_word<=cfg_num_word_i+1) begin
+					if(cfg_2ch_i==1'b1)
+						s_count_word = r_count_word+2;
+					else
+						s_count_word = r_count_word+1;
+				end
+				
 			end
 		end
 
